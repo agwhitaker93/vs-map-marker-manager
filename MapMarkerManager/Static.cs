@@ -3,6 +3,8 @@ using Vintagestory.API.Common;
 
 namespace MapMarkerManager;
 
+#nullable disable
+
 public class Static
 {
     public static readonly string MOD_ID = "KoboldRanger.MapMarkerManager";

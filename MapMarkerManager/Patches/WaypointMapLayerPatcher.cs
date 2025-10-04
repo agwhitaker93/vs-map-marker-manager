@@ -1,30 +1,19 @@
-using System.Collections.Generic;
 using HarmonyLib;
-using MapMarkerManager.UI;
-using Vintagestory.API.Client;
+using System.Collections.Generic;
 using Vintagestory.GameContent;
 
 namespace MapMarkerManager.Patches;
 
+#nullable disable
+
 [HarmonyPatch(typeof(WaypointMapLayer))]
 public class WaypointMapLayerPatcher
 {
-    public static Dictionary<string, List<Waypoint>> WaypointsByName { get; private set; }
-    public static Dictionary<string, List<Waypoint>> WaypointsByIcon { get; private set; }
-    public static Dictionary<int, List<Waypoint>> WaypointsByColour { get; private set; }
-    public static Dictionary<bool, List<Waypoint>> WaypointsByPinned { get; private set; }
-
-    private static void ResetDicts()
-    {
-        WaypointsByName = [];
-        WaypointsByIcon = [];
-        WaypointsByColour = [];
-        WaypointsByPinned = [];
-    }
+    public static List<Waypoint> WaypointList { get; private set; }
 
     private static void AddToDict<KeyType>(Dictionary<KeyType, List<Waypoint>> dict, KeyType key, Waypoint newVal) where KeyType : notnull
     {
-        if (dict.TryGetValue(key, out List<Waypoint>? value))
+        if (dict.TryGetValue(key, out List<Waypoint> value))
         {
             value.Add(newVal);
         }
@@ -34,28 +23,13 @@ public class WaypointMapLayerPatcher
         }
     }
 
-    // NOTE: might be overkill? may be better to build waypoints list once,
-    // and patch functions that add/remove waypoints to keep ourselves in sync.
-    // but this way everything should always be in sync at least
+    // NOTE: may be better to listen to waypoint added and removed events (if possible) and adjust from there
+    // but we need to get an initial list either way, so maybe this is fine?
     [HarmonyPostfix]
     [HarmonyPatch(nameof(WaypointMapLayer.OnDataFromServer))]
     public static void Postfix_OnDataFromServer(WaypointMapLayer __instance)
     {
-        ResetDicts();
-        Static.Logger.Notification("Have " + __instance.ownWaypoints.Count + " total waypoints");
-
-        foreach (Waypoint waypoint in __instance.ownWaypoints)
-        {
-            AddToDict(WaypointsByName, waypoint.Title, waypoint);
-            AddToDict(WaypointsByIcon, waypoint.Icon, waypoint);
-            AddToDict(WaypointsByColour, waypoint.Color, waypoint);
-            AddToDict(WaypointsByPinned, waypoint.Pinned, waypoint);
-        }
-
-        Static.Logger.Notification("Have " + WaypointsByName.Count + " name categories");
-        Static.Logger.Notification("Have " + WaypointsByColour.Count + " icon categories");
-        Static.Logger.Notification("Have " + WaypointsByIcon.Count + " colour categories");
-        Static.Logger.Notification("Have " + WaypointsByPinned.Count + " pinned categories");
+        WaypointList = __instance.ownWaypoints;
     }
 
     // [HarmonyPostfix]
